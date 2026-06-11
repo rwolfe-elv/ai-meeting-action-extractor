@@ -10,27 +10,20 @@ import { AnalyzeRequest, AnalyzeResponse } from './types';
  * Looks for context clues and extracts a meaningful title
  */
 function generateMeetingTitle(notes: string): string {
-  // Look for common meeting title patterns
-  const patterns = [
-    /(?:meeting|discussion|sync|standup|planning|review|retro|kickoff)[\s:]+([^.\n]+)/i,
-    /^([^.\n]+?)(?:\s*[-–—]\s*|:\s*)/m,
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Meeting|Sync|Discussion|Planning)/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = notes.match(pattern);
-    if (match && match[1]) {
-      const title = match[1].trim().replace(/^\d+\.\s*/, '');
-      if (title.length > 5 && title.length < 100) {
-        return title;
-      }
-    }
+  const firstLine = notes.split('\n')[0].trim();
+  
+  // If first line looks like a title (not too long, not an email/list), use it
+  if (firstLine.length > 3 && firstLine.length < 100 && !firstLine.includes('@')) {
+    return firstLine;
   }
 
-  // Fallback: use first meaningful phrase
-  const firstLine = notes.split('\n')[0].trim();
-  if (firstLine.length > 5 && firstLine.length < 100 && !firstLine.includes('@')) {
-    return firstLine;
+  // Try to find meeting-related keywords
+  const meetingMatch = notes.match(/(?:meeting|discussion|sync|standup|planning|review|retro|kickoff)[\s:]*([^.\n]+)/i);
+  if (meetingMatch && meetingMatch[1]) {
+    const title = meetingMatch[1].trim();
+    if (title.length > 3 && title.length < 100) {
+      return title;
+    }
   }
 
   return 'Meeting Discussion';
