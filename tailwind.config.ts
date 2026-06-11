@@ -6,7 +6,13 @@ const config: Config = {
     './app/components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'ellevelle-blue': '#5563C1',
+        'ellevelle-teal': '#4DB8A8',
+        'ellevelle-light': '#F8F9FC',
+      },
+    },
   },
   plugins: [],
 };
