@@ -6,6 +6,37 @@
 import { AnalyzeRequest, AnalyzeResponse } from './types';
 
 /**
+ * Generates a meeting title from notes if not provided
+ * Looks for context clues and extracts a meaningful title
+ */
+function generateMeetingTitle(notes: string): string {
+  // Look for common meeting title patterns
+  const patterns = [
+    /(?:meeting|discussion|sync|standup|planning|review|retro|kickoff)[\s:]+([^.\n]+)/i,
+    /^([^.\n]+?)(?:\s*[-–—]\s*|:\s*)/m,
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Meeting|Sync|Discussion|Planning)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = notes.match(pattern);
+    if (match && match[1]) {
+      const title = match[1].trim().replace(/^\d+\.\s*/, '');
+      if (title.length > 5 && title.length < 100) {
+        return title;
+      }
+    }
+  }
+
+  // Fallback: use first meaningful phrase
+  const firstLine = notes.split('\n')[0].trim();
+  if (firstLine.length > 5 && firstLine.length < 100 && !firstLine.includes('@')) {
+    return firstLine;
+  }
+
+  return 'Meeting Discussion';
+}
+
+/**
  * Builds the LLM prompt for meeting analysis
  * Instructs the model to return strict JSON only, no markdown
  */
@@ -49,14 +80,18 @@ export async function analyzeNotes(request: AnalyzeRequest): Promise<AnalyzeResp
   // Simulate API latency
   await new Promise((resolve) => setTimeout(resolve, 500));
 
+  // Generate title if not provided
+  const meetingTitle = request.meetingTitle || generateMeetingTitle(request.notes);
+
   // Mock response based on the meeting title and notes
   const notes = request.notes.toLowerCase();
   const hasDeadline = notes.includes('deadline') || notes.includes('due') || notes.includes('friday');
-  const hasRisks = notes.includes('risk') || notes.includes('concern') || notes.includes('problem');
-  const hasQuestions = notes.includes('?') || notes.includes('clarify') || notes.includes('unclear');
+  const hasRisks = notes.includes('risk') || notes.includes('concern') || notes.includes('problem') || notes.includes('blocker') || notes.includes('vendor');
+  const hasQuestions = notes.includes('?') || notes.includes('clarify') || notes.includes('unclear') || notes.includes('timeline') || notes.includes('q:');
 
   return {
-    summary: `Meeting on "${request.meetingTitle}" to discuss project progress, upcoming deliverables, and team coordination.`,
+    meetingTitle,
+    summary: `Meeting on "${meetingTitle}" to discuss project progress, upcoming deliverables, and team coordination.`,
     decisions: [
       'Team will proceed with current sprint priorities',
       'Weekly sync meetings will continue every Monday at 10 AM',
@@ -86,7 +121,7 @@ export async function analyzeNotes(request: AnalyzeRequest): Promise<AnalyzeResp
       : ['All key items clarified during meeting'],
     followUpEmail: `Hi Team,
 
-Thank you for attending today's meeting. Below is a summary of our discussion:
+Thank you for attending today's meeting on "${meetingTitle}". Below is a summary of our discussion:
 
 **Summary**: We reviewed project status and coordinated on upcoming deliverables.
 

@@ -14,6 +14,7 @@ export interface ActionItem {
 }
 
 export interface AnalyzeResponse {
+  meetingTitle: string;
   summary: string;
   decisions: string[];
   actionItems: ActionItem[];
